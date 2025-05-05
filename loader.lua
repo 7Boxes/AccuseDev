@@ -1,6 +1,7 @@
 local scripts = {
-    "https://getmoonx.cc/script",
-    "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/fps.lua"
+    "https://raw.githubusercontent.com/IdiotHub/Scripts/main/BGSI/main.lua",
+    "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/fps.lua",
+    "https://getmoonx.cc/script"
 }
 
 for i, url in pairs(scripts) do
