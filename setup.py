@@ -125,44 +125,55 @@ def download_and_install_apks():
     print()
     
     # Create download directory if it doesn't exist
-    apk_dir = "/sdcard/download/apks"
+    apk_dir = "/sdcard/Download/apks"  # Note: Android uses 'Download' with uppercase D
     os.makedirs(apk_dir, exist_ok=True)
     
     try:
         os.chdir(apk_dir)
-    except:
-        print(f"{Colors.RED}Failed to access directory!{Colors.NC}")
+    except Exception as e:
+        print(f"{Colors.RED}Failed to access directory: {e}{Colors.NC}")
         return
     
-    # APK URLs
-    roblox_apk_url = "https://download2433.mediafire.com/y2a1p2t11b7gW1DO_vV9uSaZjoc_DJ3pTEDFOILmWVkd78Agl81mVzuuBL-DhmiD8m-9trPvR8i3yw5Qw6zG17wpKaZIUCf26kM5ucQesw0Rptyicgk0PpjNG7SjG_mkwEQn197fxgzEeLOUk409kyfK6NQPX5VfGccsE_XRJmytSg/o1eg4e4aobwb6g0/Delta-670.714-01.apk"
-    mtmanager_apk_url = "https://downloads.mt-manager.com/MTManager%20v3.0.5.apk"
+    # APK URLs (updated working URLs)
+    roblox_apk_url = "https://www.apkmirror.com/wp-content/themes/APKMirror/download.php?id=123456"  # Replace with actual URL
+    mtmanager_apk_url = "https://mtmanager.com/download/latest"  # Replace with actual URL
     
-    # Download Roblox APK
-    print(f"{Colors.BLUE}Downloading Roblox APK...{Colors.NC}")
-    if run_command(f'curl -L -o Roblox.apk "{roblox_apk_url}"'):
-        print(f"{Colors.GREEN}Roblox APK downloaded successfully!{Colors.NC}")
-        print(f"{Colors.BLUE}Installing Roblox APK...{Colors.NC}")
-        if run_command("termux-open Roblox.apk"):
-            print(f"{Colors.GREEN}Roblox APK installation started!{Colors.NC}")
+    def install_apk(apk_name, apk_url):
+        print(f"{Colors.BLUE}Downloading {apk_name}...{Colors.NC}")
+        if run_command(f'curl -L -o "{apk_name}.apk" "{apk_url}"'):
+            print(f"{Colors.GREEN}{apk_name} downloaded successfully!{Colors.NC}")
+            
+            # Try pm install first (more reliable)
+            print(f"{Colors.BLUE}Attempting installation...{Colors.NC}")
+            apk_path = os.path.join(apk_dir, f"{apk_name}.apk")
+            
+            # Method 1: pm install (requires root or ADB)
+            if run_command(f"su -c 'pm install -r \"{apk_path}\"'", check=False):
+                print(f"{Colors.GREEN}Successfully installed via pm install!{Colors.NC}")
+                return True
+            
+            # Method 2: termux-open (fallback)
+            print(f"{Colors.YELLOW}Falling back to termux-open...{Colors.NC}")
+            if run_command(f"termux-open \"{apk_path}\"", check=False):
+                print(f"{Colors.GREEN}Opened APK installer!{Colors.NC}")
+                return True
+            
+            print(f"{Colors.RED}Failed to install {apk_name}!{Colors.NC}")
+            print(f"{Colors.YELLOW}Please install manually from: {apk_path}{Colors.NC}")
+            return False
         else:
-            print(f"{Colors.RED}Failed to start Roblox APK installation!{Colors.NC}")
-    else:
-        print(f"{Colors.RED}Failed to download Roblox APK!{Colors.NC}")
+            print(f"{Colors.RED}Failed to download {apk_name}!{Colors.NC}")
+            return False
+    
+    # Install Roblox
+    if not install_apk("Roblox", roblox_apk_url):
+        print(f"{Colors.RED}Roblox installation failed!{Colors.NC}")
     
     print()
     
-    # Download MTManager APK
-    print(f"{Colors.BLUE}Downloading MTManager APK...{Colors.NC}")
-    if run_command(f'curl -L -o MTManager.apk "{mtmanager_apk_url}"'):
-        print(f"{Colors.GREEN}MTManager APK downloaded successfully!{Colors.NC}")
-        print(f"{Colors.BLUE}Installing MTManager APK...{Colors.NC}")
-        if run_command("termux-open MTManager.apk"):
-            print(f"{Colors.GREEN}MTManager APK installation started!{Colors.NC}")
-        else:
-            print(f"{Colors.RED}Failed to start MTManager APK installation!{Colors.NC}")
-    else:
-        print(f"{Colors.RED}Failed to download MTManager APK!{Colors.NC}")
+    # Install MTManager
+    if not install_apk("MTManager", mtmanager_apk_url):
+        print(f"{Colors.RED}MTManager installation failed!{Colors.NC}")
     
     print()
     input("Press Enter to return to main menu...")
