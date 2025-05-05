@@ -65,8 +65,10 @@ def install_python_packages():
     print(f"{Colors.BLUE}Installing required packages...{Colors.NC}")
     run_command("pip install requests aiohttp colorama psutil")
     
-    print(f"{Colors.BLUE}Installing crypto packages...{Colors.NC}")
-    run_command("pip install crypto pycryptodome cryptography")
+    print(f"{Colors.BLUE}Installing cryptography packages...{Colors.NC}")
+    run_command("pip install crypto")
+    run_command("pip install pycryptodome")
+    run_command("pip install cryptography")
     
     print(f"{Colors.GREEN}Python packages installed successfully!{Colors.NC}")
     print()
