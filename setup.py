@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
 # Title: Roblox Client Setup Assistant
-# Version: 1.0
+# Version: 1.1
 # Author: Your Name
 
 # Colors
@@ -12,7 +12,7 @@ BLUE='\033[1;34m'
 NC='\033[0m' # No Color
 
 # Display title banner
-function show_banner() {
+show_banner() {
     clear
     echo -e "${BLUE}"
     echo "  ____        _     _           ____ _               "
@@ -22,13 +22,13 @@ function show_banner() {
     echo " |_| \_\___| |_.__/|_|\___||___/\____|_|\__,_|___/___/"
     echo -e "${NC}"
     echo -e "${YELLOW}Roblox Client Setup Assistant${NC}"
-    echo -e "${GREEN}Version 1.0 - Automated Setup Tool${NC}"
+    echo -e "${GREEN}Version 1.1 - Automated Setup Tool${NC}"
     echo "============================================"
     echo ""
 }
 
 # Main menu
-function main_menu() {
+main_menu() {
     show_banner
     echo -e "${YELLOW}Main Menu:${NC}"
     echo -e "1) ${GREEN}Install All Dependencies${NC}"
@@ -50,7 +50,7 @@ function main_menu() {
 }
 
 # Install all dependencies
-function install_all() {
+install_all() {
     show_banner
     echo -e "${YELLOW}Installing all dependencies...${NC}"
     echo ""
@@ -71,7 +71,7 @@ function install_all() {
 }
 
 # Install Python packages
-function install_python_packages() {
+install_python_packages() {
     show_banner
     echo -e "${YELLOW}Installing Python packages...${NC}"
     echo ""
@@ -80,7 +80,7 @@ function install_python_packages() {
     pip install requests aiohttp colorama psutil
     
     echo -e "${BLUE}Installing crypto packages...${NC}"
-    pip install crypto pycryptodome cryptography
+    pip install pycryptodome cryptography
     
     echo -e "${GREEN}Python packages installed successfully!${NC}"
     echo ""
@@ -89,20 +89,21 @@ function install_python_packages() {
 }
 
 # Download the script
-function download_script() {
+download_script() {
     show_banner
     echo -e "${YELLOW}Downloading Roblox script...${NC}"
     echo ""
     
     mkdir -p /sdcard/download/roblox_scripts
-    cd /sdcard/download/roblox_scripts
+    cd /sdcard/download/roblox_scripts || {
+        echo -e "${RED}Failed to access directory!${NC}"
+        return 1
+    }
     
     echo -e "${BLUE}Downloading freerejoin.py...${NC}"
-    curl -L -o freerejoin.py "https://gofile.io/d/mpuQDV"
-    
-    if [ -f "freerejoin.py" ]; then
+    if curl -L -o freerejoin.py "https://gofile.io/d/mpuQDV"; then
         echo -e "${GREEN}Script downloaded successfully!${NC}"
-        echo -e "Location: /sdcard/download/roblox_scripts/freerejoin.py"
+        echo -e "Location: $(pwd)/freerejoin.py"
     else
         echo -e "${RED}Failed to download script!${NC}"
     fi
@@ -113,13 +114,16 @@ function download_script() {
 }
 
 # Run the script
-function run_script() {
+run_script() {
     show_banner
     echo -e "${YELLOW}Running Roblox script...${NC}"
     echo ""
     
     if [ -f "/sdcard/download/roblox_scripts/freerejoin.py" ]; then
-        cd /sdcard/download/roblox_scripts
+        cd /sdcard/download/roblox_scripts || {
+            echo -e "${RED}Failed to access script directory!${NC}"
+            return 1
+        }
         echo -e "${BLUE}Starting script...${NC}"
         python freerejoin.py
     else
@@ -132,7 +136,7 @@ function run_script() {
 }
 
 # Exit script
-function exit_script() {
+exit_script() {
     show_banner
     echo -e "${GREEN}Thank you for using Roblox Client Setup Assistant!${NC}"
     echo ""
@@ -140,7 +144,7 @@ function exit_script() {
 }
 
 # Invalid option
-function invalid_option() {
+invalid_option() {
     echo -e "${RED}Invalid option! Please try again.${NC}"
     sleep 2
     main_menu
