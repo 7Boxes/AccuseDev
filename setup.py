@@ -19,14 +19,14 @@ def clear_screen():
 def show_banner():
     clear_screen()
     print(f"{Colors.BLUE}")
-    print("  ____        _     _            ____ _               ")
-    print(" |  _ \ ___  | |__ | | ___  ___ / ___| | __ _ ___ ___ ")
+    print("  ____        _     _           ____ _               ")
+    print(" |  _ \ ___  | |__ | | ___  ___/ ___| | __ _ ___ ___ ")
     print(" | |_) / _ \ | '_ \| |/ _ \/ __| |   | |/ _` / __/ __|")
     print(" |  _ <  __/ | |_) | |  __/\__ \ |___| | (_| \__ \__ \\")
     print(" |_| \_\___| |_.__/|_|\___||___/\____|_|\__,_|___/___/")
     print(f"{Colors.NC}")
     print(f"{Colors.YELLOW}Roblox Client Setup Assistant{Colors.NC}")
-    print(f"{Colors.GREEN}Version 1.1 - Automated Setup Tool{Colors.NC}")
+    print(f"{Colors.GREEN}Version 1.2 - With APK Installer{Colors.NC}")
     print("============================================")
     print()
 
@@ -65,10 +65,8 @@ def install_python_packages():
     print(f"{Colors.BLUE}Installing required packages...{Colors.NC}")
     run_command("pip install requests aiohttp colorama psutil")
     
-    print(f"{Colors.BLUE}Installing cryptography packages...{Colors.NC}")
-    run_command("pip install crypto")
-    run_command("pip install pycryptodome")
-    run_command("pip install cryptography")
+    print(f"{Colors.BLUE}Installing crypto packages...{Colors.NC}")
+    run_command("pip install pycryptodome cryptography")
     
     print(f"{Colors.GREEN}Python packages installed successfully!{Colors.NC}")
     print()
@@ -90,7 +88,7 @@ def download_script():
         return
     
     print(f"{Colors.BLUE}Downloading freerejoin.py...{Colors.NC}")
-    if run_command('curl -L -o freerejoin.py "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/freerejoin.py"'):
+    if run_command('curl -L -o freerejoin.py "https://gofile.io/d/mpuQDV"'):
         print(f"{Colors.GREEN}Script downloaded successfully!{Colors.NC}")
         print(f"Location: {os.path.join(os.getcwd(), 'freerejoin.py')}")
     else:
@@ -120,6 +118,55 @@ def run_script():
     input("Press Enter to return to main menu...")
     main_menu()
 
+def download_and_install_apks():
+    show_banner()
+    print(f"{Colors.YELLOW}Downloading and installing APKs...{Colors.NC}")
+    print()
+    
+    # Create download directory if it doesn't exist
+    apk_dir = "/sdcard/download/apks"
+    os.makedirs(apk_dir, exist_ok=True)
+    
+    try:
+        os.chdir(apk_dir)
+    except:
+        print(f"{Colors.RED}Failed to access directory!{Colors.NC}")
+        return
+    
+    # APK URLs
+    roblox_apk_url = "https://download2433.mediafire.com/y2a1p2t11b7gW1DO_vV9uSaZjoc_DJ3pTEDFOILmWVkd78Agl81mVzuuBL-DhmiD8m-9trPvR8i3yw5Qw6zG17wpKaZIUCf26kM5ucQesw0Rptyicgk0PpjNG7SjG_mkwEQn197fxgzEeLOUk409kyfK6NQPX5VfGccsE_XRJmytSg/o1eg4e4aobwb6g0/Delta-670.714-01.apk"
+    mtmanager_apk_url = "https://downloads.mt-manager.com/MTManager%20v3.0.5.apk"
+    
+    # Download Roblox APK
+    print(f"{Colors.BLUE}Downloading Roblox APK...{Colors.NC}")
+    if run_command(f'curl -L -o Roblox.apk "{roblox_apk_url}"'):
+        print(f"{Colors.GREEN}Roblox APK downloaded successfully!{Colors.NC}")
+        print(f"{Colors.BLUE}Installing Roblox APK...{Colors.NC}")
+        if run_command("termux-open Roblox.apk"):
+            print(f"{Colors.GREEN}Roblox APK installation started!{Colors.NC}")
+        else:
+            print(f"{Colors.RED}Failed to start Roblox APK installation!{Colors.NC}")
+    else:
+        print(f"{Colors.RED}Failed to download Roblox APK!{Colors.NC}")
+    
+    print()
+    
+    # Download MTManager APK
+    print(f"{Colors.BLUE}Downloading MTManager APK...{Colors.NC}")
+    if run_command(f'curl -L -o MTManager.apk "{mtmanager_apk_url}"'):
+        print(f"{Colors.GREEN}MTManager APK downloaded successfully!{Colors.NC}")
+        print(f"{Colors.BLUE}Installing MTManager APK...{Colors.NC}")
+        if run_command("termux-open MTManager.apk"):
+            print(f"{Colors.GREEN}MTManager APK installation started!{Colors.NC}")
+        else:
+            print(f"{Colors.RED}Failed to start MTManager APK installation!{Colors.NC}")
+    else:
+        print(f"{Colors.RED}Failed to download MTManager APK!{Colors.NC}")
+    
+    print()
+    input("Press Enter to return to main menu...")
+    main_menu()
+
 def exit_script():
     show_banner()
     print(f"{Colors.GREEN}Thank you for using Roblox Client Setup Assistant!{Colors.NC}")
@@ -138,17 +185,19 @@ def main_menu():
     print(f"2) {Colors.BLUE}Install Python Packages Only{Colors.NC}")
     print(f"3) {Colors.BLUE}Download Roblox Script{Colors.NC}")
     print(f"4) {Colors.BLUE}Run Roblox Script{Colors.NC}")
-    print(f"5) {Colors.RED}Exit{Colors.NC}")
+    print(f"5) {Colors.YELLOW}Download & Install APKs{Colors.NC}")
+    print(f"6) {Colors.RED}Exit{Colors.NC}")
     print()
     
     try:
-        choice = input("Select an option (1-5): ")
+        choice = input("Select an option (1-6): ")
         {
             '1': install_all,
             '2': install_python_packages,
             '3': download_script,
             '4': run_script,
-            '5': exit_script
+            '5': download_and_install_apks,
+            '6': exit_script
         }.get(choice, invalid_option)()
     except KeyboardInterrupt:
         exit_script()
