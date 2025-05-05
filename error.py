@@ -5,27 +5,39 @@ def fix_termux_permission():
     termux_dir = os.path.expanduser("~/.termux")
     properties_file = os.path.join(termux_dir, "termux.properties")
     
-    # Create ~/.termux directory if it doesn't exist
-    if not os.path.exists(termux_dir):
-        os.makedirs(termux_dir)
-        print(f"[+] Created directory: {termux_dir}")
+    # Create ~/.termux directory if missing
+    os.makedirs(termux_dir, exist_ok=True)
     
-    # Ensure the property is set in termux.properties
-    with open(properties_file, "a+") as f:
-        f.seek(0)
-        content = f.read()
-        if "allow-external-apps" not in content:
-            f.write("allow-external-apps=true\n")
-            print("[+] Added 'allow-external-apps=true' to termux.properties")
-        else:
-            print("[✓] 'allow-external-apps' already exists (check if it's set to 'true')")
+    # Read existing content (if file exists)
+    lines = []
+    if os.path.exists(properties_file):
+        with open(properties_file, "r") as f:
+            lines = f.readlines()
     
-    # Reload Termux settings
+    # Check/edit the property
+    found = False
+    for i, line in enumerate(lines):
+        if line.strip().startswith(("allow-external-apps", "#allow-external-apps")):
+            lines[i] = "allow-external-apps=true\n"  # Force update
+            found = True
+            break
+    
+    # Add the line if not found
+    if not found:
+        lines.append("allow-external-apps=true\n")
+    
+    # Write back to file (ensure Unix line endings)
+    with open(properties_file, "w", newline="\n") as f:
+        f.writelines(lines)
+    
+    print("[✓] Updated termux.properties: allow-external-apps=true")
+    
+    # Reload settings
     try:
         subprocess.run(["termux-reload-settings"], check=True)
-        print("[✓] Termux settings reloaded successfully!")
-    except subprocess.CalledProcessError:
-        print("[!] Failed to reload settings. Restart Termux manually.")
+        print("[✓] Termux settings reloaded!")
+    except:
+        print("[!] Manually restart Termux if changes don't apply.")
 
 if __name__ == "__main__":
     fix_termux_permission()
