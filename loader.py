@@ -25,8 +25,8 @@ def show_banner():
     print(" |  _ <  __/ | |_) | |  __/\__ \ |___| | (_| \__ \__ \\")
     print(" |_| \_\___| |_.__/|_|\___||___/\____|_|\__,_|___/___/")
     print(f"{Colors.NC}")
-    print(f"{Colors.YELLOW}Roblox Client Setup Assistant{Colors.NC}")
-    print(f"{Colors.GREEN}Version 1.2 - With APK Installer{Colors.NC}")
+    print(f"{Colors.YELLOW}UgPhone Setup Pro{Colors.NC}")
+    print(f"{Colors.GREEN}Version 1.3 - With APK Links{Colors.NC}")
     print("============================================")
     print()
 
@@ -65,8 +65,10 @@ def install_python_packages():
     print(f"{Colors.BLUE}Installing required packages...{Colors.NC}")
     run_command("pip install requests aiohttp colorama psutil")
     
-    print(f"{Colors.BLUE}Installing crypto packages...{Colors.NC}")
-    run_command("pip install pycryptodome cryptography")
+    print(f"{Colors.BLUE}Installing cryptography packages...{Colors.NC}")
+    run_command("pip install crypto")
+    run_command("pip install pycryptodome")
+    run_command("pip install cryptography")
     
     print(f"{Colors.GREEN}Python packages installed successfully!{Colors.NC}")
     print()
@@ -133,7 +135,7 @@ def download_and_install_apks():
     for name, url in apk_links.items():
         print(f"{Colors.BLUE}Opening {name} download page...{Colors.NC}")
         os.system(f"termux-open-url '{url}'")
-        sleep(1)  # Small delay between openings
+        sleep(5)  # Small delay between openings
     
     print(f"\n{Colors.GREEN}The download pages should now be open in your browser!{Colors.NC}")
     print(f"{Colors.YELLOW}Please download and install the APKs from there.{Colors.NC}")
