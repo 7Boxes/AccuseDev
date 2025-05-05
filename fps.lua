@@ -4,13 +4,13 @@
 _G.Ignore = {}
 _G.Settings = {
 	Players = {
-		["Ignore Me"] = true,
-		["Ignore Others"] = true,
-		["Ignore Tools"] = true
+		["Ignore Me"] = false,
+		["Ignore Others"] = false,
+		["Ignore Tools"] = false
 	},
 	Meshes = {
-		NoMesh = false,
-		NoTexture = false,
+		NoMesh = true,
+		NoTexture = true,
 		Destroy = false
 	},
 	Images = {
@@ -19,7 +19,7 @@ _G.Settings = {
 	},
 	Explosions = {
 		Smaller = true,
-		Invisible = false, -- Not for PVP games
+		Invisible = true, -- Not for PVP games
 		Destroy = false -- Not for PVP games
 	},
 	Particles = {
@@ -35,7 +35,7 @@ _G.Settings = {
 		LowerQuality = true,
 		Invisible = false,
 		NoTexture = false,
-		NoMesh = false,
+		NoMesh = true,
 		Destroy = false
 	},
 	Other = {
