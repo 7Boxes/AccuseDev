@@ -27,6 +27,7 @@ def show_banner():
     print(f"{Colors.NC}")
     print(f"{Colors.YELLOW}Roblox Client Setup Assistant{Colors.NC}")
     print(f"{Colors.GREEN}Version 1.2 - With APK Installer{Colors.NC}")
+    print(f"{Colors.RED}First-Time Suggested Use - 1 , 3 , 5 , 4{Colors.NC}")
     print("============================================")
     print()
 
