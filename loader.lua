@@ -1,4 +1,5 @@
 local scripts = {
+    "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/anticrash.lua",
     "https://raw.githubusercontent.com/IdiotHub/Scripts/main/BGSI/main.lua",
     "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/fps.lua"
 }
