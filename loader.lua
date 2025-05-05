@@ -4,10 +4,15 @@ local scripts = {
     "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/fps.lua"
 }
 
+wait(20)
+
 for i, url in pairs(scripts) do
     pcall(function()
         loadstring(game:HttpGet(url))()
         print("✅ Loaded script "..i)
     end)
-    wait(0.5)
+    
+    if i < #scripts then
+        wait(10)
+    end
 end
