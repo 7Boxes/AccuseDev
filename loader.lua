@@ -4,7 +4,7 @@ local scripts = {
     "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/fps.lua"
 }
 
-wait(20)
+wait(0.1)
 
 for i, url in pairs(scripts) do
     pcall(function()
@@ -13,6 +13,6 @@ for i, url in pairs(scripts) do
     end)
     
     if i < #scripts then
-        wait(10)
+        wait(2)
     end
 end
