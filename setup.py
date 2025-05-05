@@ -19,15 +19,14 @@ def clear_screen():
 def show_banner():
     clear_screen()
     print(f"{Colors.BLUE}")
-    print("  ____        _     _            ____ _               ")
-    print(" |  _ \ ___  | |__ | | ___  ___ / ___| | __ _ ___ ___ ")
+    print("  ____        _     _           ____ _               ")
+    print(" |  _ \ ___  | |__ | | ___  ___/ ___| | __ _ ___ ___ ")
     print(" | |_) / _ \ | '_ \| |/ _ \/ __| |   | |/ _` / __/ __|")
     print(" |  _ <  __/ | |_) | |  __/\__ \ |___| | (_| \__ \__ \\")
     print(" |_| \_\___| |_.__/|_|\___||___/\____|_|\__,_|___/___/")
     print(f"{Colors.NC}")
     print(f"{Colors.YELLOW}Roblox Client Setup Assistant{Colors.NC}")
     print(f"{Colors.GREEN}Version 1.2 - With APK Installer{Colors.NC}")
-    print(f"{Colors.RED}First-Time Suggested Use - 1 , 3 , 5 , 4{Colors.NC}")
     print("============================================")
     print()
 
@@ -121,59 +120,24 @@ def run_script():
 
 def download_and_install_apks():
     show_banner()
-    print(f"{Colors.YELLOW}Downloading and installing APKs...{Colors.NC}")
+    print(f"{Colors.YELLOW}Opening APK download links in your browser...{Colors.NC}")
     print()
     
-    # Create download directory if it doesn't exist
-    apk_dir = "/sdcard/Download/apks"  # Note: Android uses 'Download' with uppercase D
-    os.makedirs(apk_dir, exist_ok=True)
+    # APK URLs (replace with your preferred URLs)
+    apk_links = {
+        "Roblox": "https://www.roblox.com/download",
+        "MTManager": "https://mtmanager.com"
+    }
     
-    try:
-        os.chdir(apk_dir)
-    except Exception as e:
-        print(f"{Colors.RED}Failed to access directory: {e}{Colors.NC}")
-        return
+    # Open each link in browser
+    for name, url in apk_links.items():
+        print(f"{Colors.BLUE}Opening {name} download page...{Colors.NC}")
+        os.system(f"termux-open-url '{url}'")
+        sleep(1)  # Small delay between openings
     
-    # APK URLs (updated working URLs)
-    roblox_apk_url = "https://www.apkmirror.com/wp-content/themes/APKMirror/download.php?id=123456"  # Replace with actual URL
-    mtmanager_apk_url = "https://mtmanager.com/download/latest"  # Replace with actual URL
-    
-    def install_apk(apk_name, apk_url):
-        print(f"{Colors.BLUE}Downloading {apk_name}...{Colors.NC}")
-        if run_command(f'curl -L -o "{apk_name}.apk" "{apk_url}"'):
-            print(f"{Colors.GREEN}{apk_name} downloaded successfully!{Colors.NC}")
-            
-            # Try pm install first (more reliable)
-            print(f"{Colors.BLUE}Attempting installation...{Colors.NC}")
-            apk_path = os.path.join(apk_dir, f"{apk_name}.apk")
-            
-            # Method 1: pm install (requires root or ADB)
-            if run_command(f"su -c 'pm install -r \"{apk_path}\"'", check=False):
-                print(f"{Colors.GREEN}Successfully installed via pm install!{Colors.NC}")
-                return True
-            
-            # Method 2: termux-open (fallback)
-            print(f"{Colors.YELLOW}Falling back to termux-open...{Colors.NC}")
-            if run_command(f"termux-open \"{apk_path}\"", check=False):
-                print(f"{Colors.GREEN}Opened APK installer!{Colors.NC}")
-                return True
-            
-            print(f"{Colors.RED}Failed to install {apk_name}!{Colors.NC}")
-            print(f"{Colors.YELLOW}Please install manually from: {apk_path}{Colors.NC}")
-            return False
-        else:
-            print(f"{Colors.RED}Failed to download {apk_name}!{Colors.NC}")
-            return False
-    
-    # Install Roblox
-    if not install_apk("Roblox", roblox_apk_url):
-        print(f"{Colors.RED}Roblox installation failed!{Colors.NC}")
-    
-    print()
-    
-    # Install MTManager
-    if not install_apk("MTManager", mtmanager_apk_url):
-        print(f"{Colors.RED}MTManager installation failed!{Colors.NC}")
+    print(f"\n{Colors.GREEN}The download pages should now be open in your browser!{Colors.NC}")
+    print(f"{Colors.YELLOW}Please download and install the APKs from there.{Colors.NC}")
+    print(f"{Colors.BLUE}Return here after installation is complete.{Colors.NC}")
     
     print()
     input("Press Enter to return to main menu...")
