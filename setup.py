@@ -125,8 +125,8 @@ def download_and_install_apks():
     
     # APK URLs (replace with your preferred URLs)
     apk_links = {
-        "Roblox": "https://www.roblox.com/download",
-        "MTManager": "https://mtmanager.com"
+        "Roblox": "https://download2449.mediafire.com/8bf62dghbw2giJDHbZdgfZvWPzGKQeCB_HOeA5z-y2cxk--4Vs7Jk1M9V1jXNBczj7-xpgz3v-azIyiGGiWrct3uIuCpXONdHqXS-ipIsDrReHLCcswS26u3_0slkN1RBqAIsaqgqSAHYA40q6WjP3wXh7xkwNYFcF_1T2G9yGl6qQ/o1eg4e4aobwb6g0/Delta-670.714-01.apk",
+        "MTManager": "https://downloads.mt-manager.com/MTManager%20v3.0.5.apk"
     }
     
     # Open each link in browser
