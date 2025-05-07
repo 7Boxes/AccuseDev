@@ -64,7 +64,7 @@ BUBBLE QUEST AUTOMATION
 local function RunBubbleQuests()
     local BUBBLE_TARGET_POSITION = Vector3.new(76.38, 9.20, -112.68)
     local CHECK_INTERVAL = 5
-    local TWEEN_DURATION = 10
+    local TWEEN_DURATION = 1
     local BUBBLE_RATE = 0.25
 
     -- Services
@@ -178,7 +178,7 @@ local function RunEggQuests()
     }
     
     local CHECK_INTERVAL = 5
-    local TWEEN_DURATION = 10
+    local TWEEN_DURATION = 1
     local HATCH_RATE = 0.5
 
     -- Services
@@ -211,7 +211,7 @@ local function RunEggQuests()
                         local percentage = tonumber(questPath.Bar.Label.Text:match("%d+")) or 0
                         
                         if percentage < 100 and questText:lower():find("hatch") then
-                            local eggType = "Common"
+                            local eggType = "Infinity"
                             
                             for eggName in pairs(EGG_LOCATIONS) do
                                 if questText:lower():find(eggName:lower()) then
