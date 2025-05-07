@@ -4,11 +4,6 @@ local scripts = {
     "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/fps.lua"
 }
 
-if game:GetService("Players").LocalPlayer.Name == "jajtsalt" then
-    table.insert(scripts, "https://raw.githubusercontent.com/7Boxes/AccuseDev/refs/heads/main/hatches.lua")
-    print("✅ Added hatches.lua (jamexalt only)")
-end
-
 wait(0.1)
 
 for i, url in pairs(scripts) do
