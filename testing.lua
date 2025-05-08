@@ -58,6 +58,20 @@ local function callRemote(remoteType, remoteName, args)
     return result
 end
 
+-- Function to collect all items with proper delays
+local function collectAllItems()
+    local clawItems = getClawItemIds()
+    
+    -- Collect each item with 0.5 second delay
+    for _, itemId in pairs(clawItems) do
+        callRemote("Event", "GrabMinigameItem", {"GrabMinigameItem", itemId})
+        wait(0.5)
+    end
+    
+    -- Additional 0.5 second delay after last item
+    wait(0.5)
+end
+
 -- Main execution function
 local function executeAutomation()
     -- Initial tween
@@ -96,14 +110,10 @@ local function executeAutomation()
         callRemote("Event", "StartMinigame", {"StartMinigame", "Robot Claw", "Insane"})
         wait(1)
         
-        -- Step 4: Grab all items
-        local clawItems = getClawItemIds()
-        for _, itemId in pairs(clawItems) do
-            callRemote("Event", "GrabMinigameItem", {"GrabMinigameItem", itemId})
-            wait(0.5)
-        end
+        -- Step 4: Grab all items with proper timing
+        collectAllItems()
         
-        -- Step 5: Finish Minigame
+        -- Step 5: Finish Minigame (only after all items collected)
         callRemote("Event", "FinishMinigame", {"FinishMinigame"})
         
         -- Wait before next iteration
