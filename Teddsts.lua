@@ -11,23 +11,28 @@ local network = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Framework
 -- Target position for initial tween
 local targetPosition = Vector3.new(9828.36, 34.59, 171.16)
 
--- Function to tween character to position
+-- Improved tween function with error handling
 local function tweenToPosition(position, duration)
-    local tweenInfo = TweenInfo.new(
-        duration,
-        Enum.EasingStyle.Linear,
-        Enum.EasingDirection.InOut
-    )
-    
-    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = CFrame.new(position)})
-    tween:Play()
-    tween.Completed:Wait()
+    local success, err = pcall(function()
+        local tweenInfo = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear,
+            Enum.EasingDirection.InOut
+        )
+        local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = CFrame.new(position)})
+        tween:Play()
+        tween.Completed:Wait()
+    end)
+    if not success then
+        warn("Tween failed:", err)
+    end
 end
 
--- Function to execute remote calls with error handling
+-- Enhanced remote call function
 local function callRemote(remoteType, remoteName, args)
     local success, result = pcall(function()
-        local remote = network:WaitForChild(remoteType)
+        local remote = network:WaitForChild(remoteType, 5)
+        if not remote then error("Remote not found") end
         if remoteType == "Function" then
             return remote:InvokeServer(unpack(args))
         else
@@ -35,115 +40,130 @@ local function callRemote(remoteType, remoteName, args)
             return true
         end
     end)
-    
     if not success then
-        warn("Failed to call", remoteName, ":", result)
+        warn("Remote call failed ["..remoteName.."]:", result)
         return false
     end
     return result
 end
 
--- Function to find all current claw items
-local function getCurrentClawItems()
-    local clawItems = {}
-    local success, screenGui = pcall(function()
-        return localPlayer.PlayerGui:WaitForChild("ScreenGui", 5)
+-- Optimized item finder with exact matching
+local function getClawItems()
+    local items = {}
+    local success, gui = pcall(function()
+        return localPlayer.PlayerGui:WaitForChild("ScreenGui", 2)
     end)
     
-    if success and screenGui then
-        for _, child in pairs(screenGui:GetDescendants()) do
-            if child.Name:sub(1, 8) == "ClawItem" then
-                table.insert(clawItems, child.Name)
+    if success and gui then
+        for _, child in ipairs(gui:GetDescendants()) do
+            if child:IsA("GuiObject") and string.find(child.Name, "^ClawItem") then
+                table.insert(items, child.Name)
             end
         end
+    else
+        warn("ScreenGui not found")
     end
-    return clawItems
+    return items
 end
 
--- Function to collect all available items with dynamic checking
+-- Ultimate collection function with zero-items verification
 local function collectAllItems()
-    local attempts = 0
-    local maxAttempts = 20  -- Prevent infinite loops
-    local itemsCollected = 0
+    local totalCollected = 0
+    local safetyCounter = 0
+    local maxAttempts = 30
     
     repeat
-        local clawItems = getCurrentClawItems()
-        if #clawItems > 0 then
-            print("Found", #clawItems, "items to collect")
+        local currentItems = getClawItems()
+        if #currentItems > 0 then
+            print("Found", #currentItems, "items remaining")
             
-            for _, itemId in ipairs(clawItems) do
-                print("Grabbing:", itemId)
-                callRemote("Event", "GrabMinigameItem", {"GrabMinigameItem", itemId})
-                itemsCollected = itemsCollected + 1
-                wait(0.2)  -- Delay between grabs
+            -- Process all current items
+            for _, itemId in ipairs(currentItems) do
+                print("Attempting to grab:", itemId)
+                if callRemote("Event", "GrabMinigameItem", {"GrabMinigameItem", itemId}) then
+                    totalCollected = totalCollected + 1
+                end
+                wait(0.2) -- Precise delay between grabs
             end
             
-            -- Short delay before checking again
+            -- Allow game to update
             wait(0.5)
-        else
-            break
         end
         
-        attempts = attempts + 1
-    until #getCurrentClawItems() == 0 or attempts >= maxAttempts
+        safetyCounter = safetyCounter + 1
+        currentItems = getClawItems() -- Refresh item list
+        
+    until #currentItems == 0 or safetyCounter >= maxAttempts
     
-    print("Collection complete. Total items grabbed:", itemsCollected)
-    return itemsCollected > 0
+    if #getClawItems() == 0 then
+        print("✅ All items collected successfully! Total:", totalCollected)
+        return true
+    else
+        warn("⚠️ Timeout reached with", #getClawItems(), "items remaining")
+        return false
+    end
 end
 
--- Main execution function
-local function executeAutomation()
-    -- Initial tween
+-- Main automation sequence
+local function runAutomation()
+    -- Initial setup
     tweenToPosition(targetPosition, 1)
     wait(10)
     
     -- Background tasks
-    coroutine.wrap(function()
+    local function runClaims()
         while true do
-            -- Claim playtime
             for i = 1, 10 do
                 callRemote("Function", "ClaimPlaytime", {"ClaimPlaytime", i})
                 wait(1)
             end
         end
-    end)()
+    end
     
-    coroutine.wrap(function()
+    local function runEggs()
         while true do
-            -- Hatch eggs
             callRemote("Event", "HatchEgg", {"HatchEgg", "Game Egg", 4})
-            wait(1)
+            wait(1.5)
         end
-    end)()
+    end
     
-    -- Main minigame loop
+    coroutine.wrap(runClaims)()
+    coroutine.wrap(runEggs)()
+    
+    -- Main game loop
     while true do
+        print("\n=== NEW MINIGAME CYCLE ===")
+        
         -- Setup minigame
         callRemote("Event", "WorldTeleport", {"WorldTeleport", "Minigame Paradise"})
-        wait(1)
+        wait(1.5)
         
         callRemote("Event", "SkipMinigameCooldown", {"SkipMinigameCooldown", "Robot Claw"})
         wait(1)
         
         callRemote("Event", "StartMinigame", {"StartMinigame", "Robot Claw", "Insane"})
-        wait(1)
+        wait(1.5)
         
-        -- Collect items until none remain
+        -- Collect until empty
         collectAllItems()
         
-        -- Finish minigame
+        -- Finalize
         callRemote("Event", "FinishMinigame", {"FinishMinigame"})
-        wait(5)  -- Cooldown between cycles
+        print("Cycle complete. Waiting 5 seconds...\n")
+        wait(5)
     end
 end
 
--- Initialize
-localPlayer.CharacterAdded:Connect(function(newChar)
+-- Character management
+local function initCharacter(newChar)
     character = newChar
     humanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
-    executeAutomation()
-end)
+    coroutine.wrap(runAutomation)()
+end
 
+localPlayer.CharacterAdded:Connect(initCharacter)
+
+-- Initial execution
 if character then
-    executeAutomation()
+    coroutine.wrap(runAutomation)()
 end
