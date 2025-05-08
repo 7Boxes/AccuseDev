@@ -24,6 +24,25 @@ local function tweenToPosition(position, duration)
     tween.Completed:Wait()
 end
 
+-- Function to execute remote calls with error handling
+local function callRemote(remoteType, remoteName, args)
+    local success, result = pcall(function()
+        local remote = network:WaitForChild(remoteType)
+        if remoteType == "Function" then
+            return remote:InvokeServer(unpack(args))
+        else
+            remote:FireServer(unpack(args))
+            return true
+        end
+    end)
+    
+    if not success then
+        warn("Failed to call", remoteName, ":", result)
+        return false
+    end
+    return result
+end
+
 -- Function to find all current claw items
 local function getCurrentClawItems()
     local clawItems = {}
@@ -121,7 +140,7 @@ end
 -- Initialize
 localPlayer.CharacterAdded:Connect(function(newChar)
     character = newChar
-    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
     executeAutomation()
 end)
 
