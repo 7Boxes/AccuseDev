@@ -3,7 +3,7 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Configuration
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq" -- Replace with your actual webhook URL
+local WEBHOOK_URL = "YOUR_WEBHOOK_URL_HERE" -- Replace with your actual webhook URL
 local CHECK_INTERVAL = 0.1 -- Check 10 times per second (1/10)
 local RARE_ODDS = {
     ["1/50000"] = true,
@@ -15,27 +15,37 @@ local RARE_ODDS = {
 local petData = require(ReplicatedStorage.Shared.Data.Pets)
 local allPets = {}
 
--- Convert pet data to a more accessible format
+-- Convert pet data to a more accessible format with error handling
 for petName, petInfo in pairs(petData) do
+    local images = {}
+    if petInfo.Image then
+        images.normal = petInfo.Image[1] or "rbxassetid://0"
+        images.shiny = petInfo.Image[2] or images.normal
+    else
+        images.normal = "rbxassetid://0"
+        images.shiny = "rbxassetid://0"
+    end
+    
     allPets[petName] = {
-        rarity = petInfo.Rarity,
-        stats = petInfo.Stat,
-        images = {
-            normal = petInfo.Image[1],
-            shiny = petInfo.Image[2] or petInfo.Image[1] -- Fallback to normal if no shiny
-        }
+        rarity = petInfo.Rarity or "Unknown",
+        stats = petInfo.Stat or {},
+        images = images
     }
 end
 
--- Webhook sending function (similar to example)
+-- Webhook sending function
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local displayName = isShiny and "Shiny " .. petName or petName
-    local imageUrl = "https://ps99.biggamesapi.io/image/" .. imageAssetId
+    local imageUrl = "https://ps99.biggamesapi.io/image/" .. (imageAssetId or "0")
     
     -- Format stats
     local statText = ""
-    for statName, statValue in pairs(stats) do
-        statText = statText .. string.format("%s: %.1f\n", statName, statValue)
+    if stats then
+        for statName, statValue in pairs(stats) do
+            statText = statText .. string.format("%s: %.1f\n", statName, statValue)
+        end
+    else
+        statText = "No stats available"
     end
     
     local data = {
@@ -133,9 +143,7 @@ local function CheckForRareHatch()
         local numericValue = chanceText:match("([0-9.]+)%%")
         if numericValue then
             numericValue = tonumber(numericValue)
-            if numericValue and numericValue <= 0.002 then
-                -- It's rare enough
-            else
+            if numericValue and numericValue > 0.002 then
                 return -- Not rare enough
             end
         else
@@ -151,10 +159,10 @@ local function CheckForRareHatch()
     if icon then
         local iconLabel = icon:FindFirstChild("Label")
         if iconLabel then
-            imageAssetId = iconLabel.Text
+            imageAssetId = iconLabel.Text or ""
             -- Check if this is a shiny version
             local petInfo = allPets[petName]
-            if petInfo then
+            if petInfo and petInfo.images then
                 if imageAssetId == petInfo.images.shiny then
                     isShiny = true
                 elseif imageAssetId ~= petInfo.images.normal then
