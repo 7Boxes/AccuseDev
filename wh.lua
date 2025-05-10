@@ -5,9 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Configuration
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq" -- Replace with your actual webhook URL
 local CHECK_INTERVAL = 0.1 -- Check 10 times per second
-local MIN_RARE_PERCENTAGE = 0.2 -- Minimum percentage to consider rare (0.2%)
+local MIN_RARE_PERCENTAGE = 0.2 -- 0.2%
 
--- Enable HTTP requests (must be enabled in game settings)
+-- Enable HTTP requests
 HttpService.HttpEnabled = true
 
 -- Error logging
@@ -37,7 +37,7 @@ for petName, petInfo in pairs(petData) do
     }
 end
 
--- Improved webhook sender
+-- Webhook sender
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local displayName = isShiny and "Shiny " .. petName or petName
     local imageUrl = "https://ps99.biggamesapi.io/image/" .. (imageAssetId or "0")
@@ -52,14 +52,34 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
         ["embeds"] = {{
             ["title"] = "New Hatch!",
             ["color"] = 65280,
-            ["thumbnail"] = {"url" = imageUrl},
-            ["fields"] = {
-                {"name" = "Pet", "value" = displayName, "inline" = true},
-                {"name" = "Rarity", "value" = rarity, "inline" = true},
-                {"name" = "Odds", "value" = odds, "inline" = true},
-                {"name" = "Stats", "value" = statText, "inline" = false}
+            ["thumbnail"] = {
+                ["url"] = imageUrl
             },
-            ["footer"] = {"text" = "Pet Hatch Notifier"}
+            ["fields"] = {
+                {
+                    ["name"] = "Pet", 
+                    ["value"] = displayName, 
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Rarity", 
+                    ["value"] = rarity, 
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Odds", 
+                    ["value"] = odds, 
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Stats", 
+                    ["value"] = statText, 
+                    ["inline"] = false
+                }
+            },
+            ["footer"] = {
+                ["text"] = "Pet Hatch Notifier"
+            }
         }}
     }
     
@@ -93,7 +113,7 @@ local function CheckForRareHatch()
     local lastHatch = hatching:FindFirstChild("Last")
     if not lastHatch then return end
     
-    -- Check all pet frames in Last hatch
+    -- Check all pet frames
     for _, petFrame in ipairs(lastHatch:GetChildren()) do
         if petFrame:IsA("Frame") or petFrame:IsA("TextButton") then
             local chanceElement = petFrame:FindFirstChild("Chance")
@@ -102,14 +122,13 @@ local function CheckForRareHatch()
                 local chanceText = chanceElement.Text
                 
                 if chanceText then
-                    -- Parse percentage value
+                    -- Parse percentage
                     local percentage = tonumber(chanceText:match("([%d%.]+)%%")) or 0
                     
-                    -- Check if percentage is rare enough
                     if percentage <= MIN_RARE_PERCENTAGE then
-                        logDebug("RARE PET FOUND: " .. petName .. " (" .. chanceText .. ")")
+                        logDebug("RARE PET: " .. petName .. " (" .. chanceText .. ")")
                         
-                        -- Check for shiny
+                        -- Check shiny
                         local icon = petFrame:FindFirstChild("Icon")
                         local isShiny = false
                         local imageAssetId = ""
