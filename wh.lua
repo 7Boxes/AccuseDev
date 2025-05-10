@@ -6,9 +6,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq" -- Replace with your actual webhook URL
 local CHECK_INTERVAL = 0.1 -- 10 checks per second
 local MIN_RARE_PERCENTAGE = 0.2 -- 0.2% threshold
+local ANTI_SPAM_DELAY = 1 -- 1 second cooldown between same pet webhooks
 
 -- Enable HTTP requests
 HttpService.HttpEnabled = true
+
+-- Track last sent webhooks
+local lastWebhookTimes = {}
 
 -- Logging functions
 local function logError(message)
@@ -40,8 +44,17 @@ for petName, petInfo in pairs(petData) do
     }
 end
 
--- Webhook sender with all requested features
+-- Webhook sender with anti-spam
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
+    -- Anti-spam check
+    local currentTime = os.time()
+    if lastWebhookTimes[petName] and (currentTime - lastWebhookTimes[petName] < ANTI_SPAM_DELAY) then
+        logDebug("Skipping webhook for " .. petName .. " (anti-spam)")
+        return
+    end
+    
+    lastWebhookTimes[petName] = currentTime
+    
     local displayName = isShiny and "Shiny " .. petName or petName
     local imageUrl = "https://ps99.biggamesapi.io/image/" .. (imageAssetId or "0")
     
@@ -90,7 +103,7 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
         }}
     }
     
-    -- Webhook URL modification as requested
+    -- Webhook URL modification
     local modifiedWebhook = string.gsub(WEBHOOK_URL, "https://discord.com", "https://webhook.lewisakura.moe")
     
     spawn(function()
@@ -107,38 +120,26 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     end)
 end
 
--- Main checker with all fixes
+-- Main checker with fixed image detection
 local function CheckForRareHatch()
     local player = Players.LocalPlayer
-    if not player then
-        logError("Player not found")
-        return
-    end
+    if not player then return end
     
     local gui = player.PlayerGui:FindFirstChild("ScreenGui") or player.PlayerGui:FindFirstChildWhichIsA("ScreenGui")
-    if not gui then
-        logError("ScreenGui not found")
-        return
-    end
+    if not gui then return end
     
     local hatching = gui:FindFirstChild("Hatching") or 
                    gui:FindFirstChild("MainGui") and gui.MainGui:FindFirstChild("Hatching")
-    if not hatching then
-        logError("Hatching frame not found")
-        return
-    end
+    if not hatching then return end
     
     local lastHatch = hatching:FindFirstChild("Last") or 
                      hatching:FindFirstChild("Recent") and hatching.Recent:FindFirstChild("Last")
-    if not lastHatch then
-        logError("Last hatch frame not found")
-        return
-    end
+    if not lastHatch then return end
     
     -- Check all potential pet frames
     for _, petFrame in ipairs(lastHatch:GetChildren()) do
         if petFrame:IsA("Frame") or petFrame:IsA("TextButton") then
-            -- Find chance element with multiple possible locations
+            -- Find chance element
             local chanceElement = petFrame:FindFirstChild("Chance") or
                                 petFrame:FindFirstChild("TextLabel") and 
                                 petFrame.TextLabel:FindFirstChild("Chance")
@@ -162,31 +163,32 @@ local function CheckForRareHatch()
                     if percentage <= MIN_RARE_PERCENTAGE then
                         logDebug("RARE PET: " .. petName .. " (" .. chanceText .. ")")
                         
-                        -- Find icon and get image asset ID (fixed to use Image property)
-                        local icon = petFrame:FindFirstChild("Icon") or 
-                                   petFrame:FindFirstChild("aicon") or
-                                   petFrame:FindFirstChildOfClass("ImageLabel")
-                        
+                        -- Fixed image detection - now checks Icon > Label > Image
+                        local icon = petFrame:FindFirstChild("Icon")
                         local isShiny = false
                         local imageAssetId = ""
                         
                         if icon then
-                            local imageId = icon.Image
-                            if imageId then
-                                imageAssetId = imageId:match("rbxassetid://(%d+)") or ""
-                                logDebug("Image asset ID: " .. imageAssetId)
-                                
-                                -- Check for shiny status
-                                local petInfo = allPets[petName]
-                                if petInfo and petInfo.images then
-                                    local normalId = petInfo.images.normal:match("rbxassetid://(%d+)") or ""
-                                    local shinyId = petInfo.images.shiny:match("rbxassetid://(%d+)") or ""
+                            local iconLabel = icon:FindFirstChild("Label")
+                            if iconLabel and iconLabel:IsA("ImageLabel") then
+                                -- Get the image asset ID from the Image property
+                                local imageId = iconLabel.Image
+                                if imageId then
+                                    imageAssetId = imageId:match("rbxassetid://(%d+)") or ""
+                                    logDebug("Found image asset ID: " .. imageAssetId)
                                     
-                                    if imageAssetId == shinyId then
-                                        isShiny = true
-                                        logDebug("Shiny detected!")
-                                    elseif imageAssetId ~= normalId then
-                                        logDebug("Unknown image ID")
+                                    -- Check for shiny status
+                                    local petInfo = allPets[petName]
+                                    if petInfo and petInfo.images then
+                                        local normalId = petInfo.images.normal:match("rbxassetid://(%d+)") or ""
+                                        local shinyId = petInfo.images.shiny:match("rbxassetid://(%d+)") or ""
+                                        
+                                        if imageAssetId == shinyId then
+                                            isShiny = true
+                                            logDebug("Shiny detected!")
+                                        elseif imageAssetId ~= normalId then
+                                            logDebug("Unknown image ID")
+                                        end
                                     end
                                 end
                             end
