@@ -1,10 +1,11 @@
 -- Pet Hatch Notifier Main Script
-local HttpService = game:GetService("HttpService")
+return function(config)
+    local HttpService = game:GetService("HttpService")
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local PetHatchNotifier = {}
-
-function PetHatchNotifier.init(config)
     -- Validate config
+    config = config or {}
     if not config.WEBHOOK_URL then
         error("WEBHOOK_URL is required in config")
     end
@@ -13,6 +14,7 @@ function PetHatchNotifier.init(config)
     config.CHECK_INTERVAL = config.CHECK_INTERVAL or 0.1
     config.MIN_RARE_PERCENTAGE = config.MIN_RARE_PERCENTAGE or 0.2
     config.ANTI_SPAM_DELAY = config.ANTI_SPAM_DELAY or 1
+    config.DEBUG = config.DEBUG or false
     
     -- Track last sent webhooks
     local lastWebhookTimes = {}
@@ -49,12 +51,11 @@ function PetHatchNotifier.init(config)
         end
     end
 
-    -- Load and process pet data with proper stat extraction
-    local petData = require(game:GetService("ReplicatedStorage").Shared.Data.Pets)
+    -- Load and process pet data
+    local petData = require(ReplicatedStorage.Shared.Data.Pets)
     local allPets = {}
 
     for petName, petInfo in pairs(petData) do
-        -- Extract stats from the petInfo table
         local stats = {}
         
         if petInfo.Stat then
@@ -184,7 +185,7 @@ function PetHatchNotifier.init(config)
 
     -- Main checker
     local function CheckForRareHatch()
-        local player = game:GetService("Players").LocalPlayer
+        local player = Players.LocalPlayer
         if not player then return end
         
         local gui = player.PlayerGui:FindFirstChild("ScreenGui") or player.PlayerGui:FindFirstChildWhichIsA("ScreenGui")
@@ -272,5 +273,3 @@ function PetHatchNotifier.init(config)
         end
     end)()
 end
-
-return PetHatchNotifier
