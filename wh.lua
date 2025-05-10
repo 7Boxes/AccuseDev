@@ -3,13 +3,10 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Configuration
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq" -- Replace with your actual webhook URL
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq"
 local CHECK_INTERVAL = 0.1 -- 10 checks per second
 local MIN_RARE_PERCENTAGE = 0.2 -- 0.2% threshold
 local ANTI_SPAM_DELAY = 1 -- 1 second cooldown between same pet webhooks
-
--- Enable HTTP requests
-HttpService.HttpEnabled = true
 
 -- Track last sent webhooks
 local lastWebhookTimes = {}
@@ -44,7 +41,30 @@ for petName, petInfo in pairs(petData) do
     }
 end
 
--- Webhook sender with anti-spam
+-- Universal request function for webhooks
+local function request(data)
+    -- Try different request methods based on available executor APIs
+    if syn and syn.request then
+        return syn.request(data)
+    elseif http and http.request then
+        return http.request(data)
+    elseif fluxus and fluxus.request then
+        return fluxus.request(data)
+    elseif request then
+        return request(data)
+    elseif http_request then
+        return http_request(data)
+    else
+        -- Fallback to HttpService if no executor API is available
+        local response = nil
+        pcall(function()
+            response = HttpService:PostAsync(data.Url, data.Body, Enum.HttpContentType.ApplicationJson)
+        end)
+        return {StatusCode = response and 200 or 0}
+    end
+end
+
+-- Webhook sender with anti-spam and universal request
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     -- Anti-spam check
     local currentTime = os.time()
@@ -107,9 +127,21 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local modifiedWebhook = string.gsub(WEBHOOK_URL, "https://discord.com", "https://webhook.lewisakura.moe")
     
     spawn(function()
+        local newdata = HttpService:JSONEncode(data)
+        local headers = {
+            ["content-type"] = "application/json"
+        }
+        
+        local requestData = {
+            Url = modifiedWebhook,
+            Body = newdata,
+            Method = "POST",
+            Headers = headers
+        }
+        
         local success, response = pcall(function()
-            local body = HttpService:JSONEncode(data)
-            return HttpService:PostAsync(modifiedWebhook, body, Enum.HttpContentType.ApplicationJson)
+            local res = request(requestData)
+            return res.StatusCode == 200
         end)
         
         if not success then
