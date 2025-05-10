@@ -1,87 +1,91 @@
--- Stealthy Movement and Platform Script
+-- Improved Stealth Script with Valid Methods
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChildOfClass("Humanoid")
+
+-- Proper way to wait for humanoid
+local humanoid
+while not humanoid do
+    for _, child in ipairs(character:GetChildren()) do
+        if child:IsA("Humanoid") then
+            humanoid = child
+            break
+        end
+    end
+    task.wait()
+end
+
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 -- CONFIG SECTION
 local config = {
-    TargetPosition = Vector3.new(16.95, 16.27, -7.35),  -- Target coordinates
-    RemoteValue = 4,                                    -- Remote value to send
-    MovementSpeed = 0.8,                               -- Movement speed (0-1)
-    PlatformName = "StealthPlatform",                  -- Platform identifier
-    PlatformSize = Vector3.new(12, 1.2, 12),          -- Platform dimensions
-    CheckInterval = 0.016                             -- Movement check interval
+    TargetPosition = Vector3.new(16.95, 16.27, -7.35),
+    RemoteValue = 4,
+    MovementSpeed = 0.7,
+    PlatformName = "Terrain_"..math.random(1000,9999),
+    PlatformSize = Vector3.new(12, 1.2, 12),
+    CheckInterval = 0.016
 }
 
--- Stealth movement using physics manipulation
+-- Improved stealth movement using multiple techniques
 local function stealthMoveToPosition()
-    local startPos = humanoidRootPart.Position
-    local direction = (config.TargetPosition - startPos).Unit
-    local distance = (config.TargetPosition - startPos).Magnitude
-    local arrivalThreshold = 1.5  -- How close we need to get
+    local startTime = os.clock()
+    local maxDuration = 30 -- Maximum time to attempt movement
     
-    -- Enable movement states
-    humanoid:ChangeState(Enum.HumanoidStateType.Running)
-    humanoid.WalkSpeed = 0  -- We'll control movement manually
+    -- Method 1: Gradual physics-based movement
+    local function physicsMove()
+        humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        humanoid.WalkSpeed = 0
+        
+        local connection
+        connection = RunService.Heartbeat:Connect(function(delta)
+            if os.clock() - startTime > maxDuration then
+                connection:Disconnect()
+                return false
+            end
+            
+            local currentPos = humanoidRootPart.Position
+            local remaining = (config.TargetPosition - currentPos).Magnitude
+            
+            if remaining < 2 then
+                connection:Disconnect()
+                humanoid.WalkSpeed = 16
+                return true
+            end
+            
+            -- Apply controlled forces
+            local moveDir = (config.TargetPosition - currentPos).Unit
+            local randomizedForce = moveDir * (humanoidRootPart.AssemblyMass * 45 * config.MovementSpeed)
+            humanoidRootPart:ApplyImpulse(randomizedForce * delta * 60)
+        end)
+    end
+
+    -- Method 2: Waypoint-based movement fallback
+    local function waypointMove()
+        local path = humanoid:FindFirstChildOfClass("Path") or Instance.new("Path")
+        path.Waypoints = {
+            Vector3.new(humanoidRootPart.Position.X, humanoidRootPart.Position.Y, humanoidRootPart.Position.Z),
+            config.TargetPosition
+        }
+        path.Parent = humanoid
+        humanoid:MoveTo(config.TargetPosition)
+    end
+
+    -- Try primary method first
+    if physicsMove() then return true end
     
-    -- Movement loop
-    local connection
-    connection = RunService.Heartbeat:Connect(function(delta)
-        local currentPos = humanoidRootPart.Position
-        local remainingDist = (config.TargetPosition - currentPos).Magnitude
-        
-        if remainingDist <= arrivalThreshold then
-            connection:Disconnect()
-            humanoid.WalkSpeed = 16  -- Restore normal speed
-            return true
-        end
-        
-        -- Calculate movement with slight randomness
-        local moveDir = (config.TargetPosition - currentPos).Unit
-        local randomizedDir = (moveDir + Vector3.new(
-            (math.random() - 0.5) * 0.1,
-            0,
-            (math.random() - 0.5) * 0.1
-        )).Unit
-        
-        -- Apply movement force with varying intensity
-        local moveForce = randomizedDir * (humanoidRootPart.AssemblyMass * 50 * config.MovementSpeed)
-        humanoidRootPart:ApplyImpulse(moveForce * delta * 60)
-        
-        -- Small upward force to prevent sticking to ground
-        humanoidRootPart:ApplyImpulse(Vector3.new(0, humanoidRootPart.AssemblyMass * 2 * delta * 60, 0))
-    end)
-    
+    -- Fallback to secondary method
+    waypointMove()
     return true
 end
 
--- Remote execution with randomized delays
-local function executeRemoteStealth()
-    local remotePath = ReplicatedStorage
-        :WaitForChild("Shared")
-        :WaitForChild("Framework")
-        :WaitForChild("Network")
-        :WaitForChild("Remote")
-        :WaitForChild("RemoteEvent")
-    
-    -- Randomize execution timing
-    task.wait(math.random() * 0.5 + 0.3)
-    
-    -- Fire with slight value variation to appear natural
-    local actualValue = config.RemoteValue + (math.random() - 0.5) * 0.1
-    remotePath:FireServer(actualValue)
-    
-    return true
-end
-
--- Platform creation using existing parts as disguise
+-- Optimized platform creation
 local function createStealthPlatform()
-    -- Find existing baseplate to clone properties from
-    local baseplate = workspace:FindFirstChild("Baseplate") or workspace:FindFirstChildWhichIsA("BasePart")
+    -- Find existing terrain to mimic
+    local terrain = workspace:FindFirstChildOfClass("Terrain")
+    local baseplate = workspace:FindFirstChild("Baseplate")
     
     -- Create disguised platform
     local platform = Instance.new("Part")
@@ -89,60 +93,52 @@ local function createStealthPlatform()
     platform.Size = config.PlatformSize
     platform.Anchored = true
     platform.CanCollide = true
-    platform.Transparency = 0.85
-    platform.Color = Color3.fromRGB(80, 80, 80)
-    platform.Material = Enum.Material.Concrete
+    platform.Transparency = 0.9
+    platform.Color = terrain and terrain.Color or Color3.fromRGB(80, 80, 80)
+    platform.Material = terrain and terrain.Material or Enum.Material.Concrete
     
-    -- Copy properties from existing part if available
-    if baseplate then
-        platform.Transparency = baseplate.Transparency
-        platform.Color = baseplate.Color
-        platform.Material = baseplate.Material
-    end
+    -- Calculate perfect position
+    local rootPos = humanoidRootPart.Position
+    local humanoidHeight = character:GetExtentsSize().Y
+    platform.Position = Vector3.new(
+        rootPos.X,
+        rootPos.Y - (humanoidHeight/2) - (platform.Size.Y/2) + 0.5,
+        rootPos.Z
+    )
     
-    -- Position platform exactly where needed
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local hipHeight = humanoid and humanoid.HipHeight or 2
-    local platformYOffset = (character:GetExtentsSize().Y/2) - hipHeight - (platform.Size.Y/2)
+    -- Add subtle effects
+    local surfaceGui = Instance.new("SurfaceGui", platform)
+    surfaceGui.Face = Enum.NormalId.Top
+    surfaceGui.AlwaysOnTop = true
     
-    platform.Position = humanoidRootPart.Position - Vector3.new(0, platformYOffset, 0)
-    platform.CFrame = CFrame.new(platform.Position)
+    local frame = Instance.new("Frame", surfaceGui)
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.new(0, 0, 0)
+    frame.BackgroundTransparency = 0.95
     
-    -- Disguise the platform as terrain
-    local terrain = workspace:FindFirstChildOfClass("Terrain")
-    if terrain then
-        platform.Name = "Terrain_" .. tostring(math.random(10000,99999))
-    end
-    
-    -- Add touch functionality with randomized delays
-    local touchScript = Instance.new("Script", platform)
-    touchScript.Name = "TouchScript"
-    
-    touchScript.Source = [[
-        local Debounce = false
-        local Cooldown = math.random(3, 8)  -- Random cooldown
+    -- Add touch functionality with delays
+    local script = Instance.new("Script", platform)
+    script.Name = "TouchHandler"
+    script.Source = [[
+        local debounce = false
+        local remotePath = game:GetService("ReplicatedStorage")
+            :WaitForChild("Shared")
+            :WaitForChild("Framework")
+            :WaitForChild("Network")
+            :WaitForChild("Remote")
+            :WaitForChild("RemoteEvent")
         
         script.Parent.Touched:Connect(function(hit)
+            if debounce then return end
+            debounce = true
+            
             local humanoid = hit.Parent:FindFirstChildOfClass("Humanoid")
-            if humanoid and not Debounce then
-                Debounce = true
-                
-                -- Random delay before execution
-                task.wait(math.random() * 0.5)
-                
-                local remotePath = game:GetService("ReplicatedStorage")
-                    :WaitForChild("Shared")
-                    :WaitForChild("Framework")
-                    :WaitForChild("Network")
-                    :WaitForChild("Remote")
-                    :WaitForChild("RemoteEvent")
-                
-                -- Fire with slight variation
-                remotePath:FireServer(]] .. config.RemoteValue .. [[ + (math.random() - 0.5) * 0.1)
-                
-                Debounce = false
-                task.wait(Cooldown)
+            if humanoid then
+                task.wait(math.random(0.1, 0.5))
+                remotePath:FireServer(]]..config.RemoteValue..[[)
             end
+            
+            debounce = false
         end)
     ]]
     
@@ -150,47 +146,41 @@ local function createStealthPlatform()
     return true
 end
 
--- Main execution with randomized timing
+-- Main execution with proper waits
 task.spawn(function()
-    -- Initial delay
-    task.wait(math.random(1, 3))
+    task.wait(math.random(1, 3)) -- Initial delay
     
-    -- Movement phase
     if stealthMoveToPosition() then
-        print("Stealth movement completed")
-    else
-        warn("Movement interrupted")
-        return
-    end
-    
-    -- Random wait before platform creation
-    task.wait(math.random() * 1.5 + 0.5)
-    
-    -- Platform creation
-    if createStealthPlatform() then
-        print("Stealth platform deployed")
-    else
-        warn("Platform creation failed")
-    end
-    
-    -- Random wait before remote execution
-    task.wait(math.random() * 2 + 1)
-    
-    -- Remote execution
-    if executeRemoteStealth() then
-        print("Remote executed stealthily")
-    else
-        warn("Remote execution failed")
-    end
-end)
-
--- Cleanup with disguise
-game:GetService("UserInputService").WindowFocused:Connect(function(focused)
-    if not focused then
-        for _, obj in ipairs(workspace:GetChildren()) do
-            if obj.Name == config.PlatformName or string.find(obj.Name, "Terrain_") then
-                obj:Destroy()
+        task.wait(math.random(0.5, 1.5))
+        
+        if createStealthPlatform() then
+            task.wait(math.random(1, 2))
+            
+            -- Get remote properly
+            local success, remote = pcall(function()
+                return ReplicatedStorage:WaitForChild("Shared")
+                    :WaitForChild("Framework")
+                    :WaitForChild("Network")
+                    :WaitForChild("Remote")
+                    :WaitForChild("RemoteEvent")
+            end)
+            
+            if success and remote then
+                task.wait(math.random(0.2, 0.8))
+                remote:FireServer(config.RemoteValue)
             end
         end
     end
 end)
+
+-- Better cleanup system
+local function cleanUp()
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj.Name == config.PlatformName then
+            obj:Destroy()
+        end
+    end
+end
+
+game:GetService("UserInputService").WindowFocusReleased:Connect(cleanUp)
+Players.PlayerRemoving:Connect(function(p) if p == player then cleanUp() end end)
