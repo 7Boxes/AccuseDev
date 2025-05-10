@@ -3,7 +3,7 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Configuration
-local WEBHOOK_URL = "YOUR_WEBHOOK_URL_HERE" -- Replace with your actual webhook URL
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq" -- Replace with your actual webhook URL
 local CHECK_INTERVAL = 0.1 -- Check 10 times per second (1/10)
 local RARE_ODDS = {
     ["1/50000"] = true,
@@ -56,8 +56,6 @@ for petName, petInfo in pairs(petData) do
         images = images
     }
 end
-
-logDebug("Loaded data for " .. table.count(allPets) .. " pets")
 
 -- Webhook sending function with proper HTTP request
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
