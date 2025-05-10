@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq"
 local CHECK_INTERVAL = 0.1 -- 10 checks per second
 local MIN_RARE_PERCENTAGE = 0.2 -- 0.2% threshold
-local ANTI_SPAM_DELAY = 1 -- 1 second cooldown between same pet webhooks
+local ANTI_SPAM_DELAY = 1.3 -- 1.3 second cooldown between same pet webhooks
 
 -- Track last sent webhooks
 local lastWebhookTimes = {}
@@ -20,30 +20,8 @@ local function logDebug(message)
     print("[DEBUG] " .. message)
 end
 
--- Load and process pet data
-local petData = require(ReplicatedStorage.Shared.Data.Pets)
-local allPets = {}
-
-for petName, petInfo in pairs(petData) do
-    local images = {}
-    if petInfo.Image then
-        images.normal = petInfo.Image[1] or "rbxassetid://0"
-        images.shiny = petInfo.Image[2] or images.normal
-    else
-        images.normal = "rbxassetid://0"
-        images.shiny = "rbxassetid://0"
-    end
-    
-    allPets[petName] = {
-        rarity = petInfo.Rarity or "Unknown",
-        stats = petInfo.Stat or {},
-        images = images
-    }
-end
-
 -- Universal request function for webhooks
 local function request(data)
-    -- Try different request methods based on available executor APIs
     if syn and syn.request then
         return syn.request(data)
     elseif http and http.request then
@@ -55,7 +33,6 @@ local function request(data)
     elseif http_request then
         return http_request(data)
     else
-        -- Fallback to HttpService if no executor API is available
         local response = nil
         pcall(function()
             response = HttpService:PostAsync(data.Url, data.Body, Enum.HttpContentType.ApplicationJson)
@@ -64,7 +41,47 @@ local function request(data)
     end
 end
 
--- Webhook sender with anti-spam and universal request
+-- Load and process pet data with proper stat extraction
+local petData = require(ReplicatedStorage.Shared.Data.Pets)
+local allPets = {}
+
+for petName, petInfo in pairs(petData) do
+    -- Extract stats from the petInfo table
+    local stats = {}
+    if petInfo.Stat then
+        -- Handle both direct values and table-based stats
+        for statName, statValue in pairs(petInfo.Stat) do
+            if type(statValue) == "table" and statValue._am then
+                stats[statName] = statValue._am
+            else
+                stats[statName] = statValue
+            end
+        end
+    end
+    
+    -- Process images
+    local images = {}
+    if petInfo.Image then
+        images.normal = petInfo.Image[1] or "rbxassetid://0"
+        images.shiny = petInfo.Image[2] or images.normal
+    else
+        images.normal = "rbxassetid://0"
+        images.shiny = "rbxassetid://0"
+    end
+    
+    allPets[petName] = {
+        rarity = petInfo.Rarity or "Unknown",
+        stats = stats,
+        images = images
+    }
+    
+    logDebug("Loaded pet: "..petName.." | Rarity: "..allPets[petName].rarity)
+    for statName, statValue in pairs(allPets[petName].stats) do
+        logDebug("  "..statName..": "..tostring(statValue))
+    end
+end
+
+-- Webhook sender with anti-spam
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     -- Anti-spam check
     local currentTime = os.time()
