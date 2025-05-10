@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1310034563162046484/2aWtiIuFreQ-XRxdEBAm2NrcURi7ZKMGkWy7UfeHM4wWYx4dMlnhl_7AdknPkP2Tx5Vq"
 local CHECK_INTERVAL = 0.1 -- 10 checks per second
 local MIN_RARE_PERCENTAGE = 0.2 -- 0.2% threshold
-local ANTI_SPAM_DELAY = 1.3 -- 1.3 second cooldown between same pet webhooks
+local ANTI_SPAM_DELAY = 1 -- 1 second cooldown between same pet webhooks
 
 -- Track last sent webhooks
 local lastWebhookTimes = {}
@@ -48,14 +48,22 @@ local allPets = {}
 for petName, petInfo in pairs(petData) do
     -- Extract stats from the petInfo table
     local stats = {}
+    
+    -- Directly access the Stat values from PetBuilder
     if petInfo.Stat then
-        -- Handle both direct values and table-based stats
-        for statName, statValue in pairs(petInfo.Stat) do
-            if type(statValue) == "table" and statValue._am then
-                stats[statName] = statValue._am
-            else
-                stats[statName] = statValue
-            end
+        -- Bubbles stat
+        if petInfo.Stat.Bubbles then
+            stats.Bubbles = type(petInfo.Stat.Bubbles) == "table" and petInfo.Stat.Bubbles._am or petInfo.Stat.Bubbles
+        end
+        
+        -- Coins stat
+        if petInfo.Stat.Coins then
+            stats.Coins = type(petInfo.Stat.Coins) == "table" and petInfo.Stat.Coins._am or petInfo.Stat.Coins
+        end
+        
+        -- Gems stat (if exists)
+        if petInfo.Stat.Gems then
+            stats.Gems = type(petInfo.Stat.Gems) == "table" and petInfo.Stat.Gems._am or petInfo.Stat.Gems
         end
     end
     
@@ -76,8 +84,10 @@ for petName, petInfo in pairs(petData) do
     }
     
     logDebug("Loaded pet: "..petName.." | Rarity: "..allPets[petName].rarity)
-    for statName, statValue in pairs(allPets[petName].stats) do
-        logDebug("  "..statName..": "..tostring(statValue))
+    logDebug("  Bubbles: "..tostring(allPets[petName].stats.Bubbles or "N/A"))
+    logDebug("  Coins: "..tostring(allPets[petName].stats.Coins or "N/A"))
+    if allPets[petName].stats.Gems then
+        logDebug("  Gems: "..tostring(allPets[petName].stats.Gems))
     end
 end
 
@@ -95,11 +105,24 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local displayName = isShiny and "Shiny " .. petName or petName
     local imageUrl = "https://ps99.biggamesapi.io/image/" .. (imageAssetId or "0")
     
-    -- Format stats dynamically
+    -- Format stats with guaranteed Bubbles and Coins display
     local statText = ""
     if stats then
+        -- Always show Bubbles first if available
+        if stats.Bubbles then
+            statText = statText .. string.format("Bubbles: %.1f\n", stats.Bubbles)
+        end
+        
+        -- Always show Coins second if available
+        if stats.Coins then
+            statText = statText .. string.format("Coins: %.1f\n", stats.Coins)
+        end
+        
+        -- Show other stats if they exist
         for statName, statValue in pairs(stats) do
-            statText = statText .. string.format("%s: %.1f\n", statName, statValue)
+            if statName ~= "Bubbles" and statName ~= "Coins" then
+                statText = statText .. string.format("%s: %.1f\n", statName, statValue)
+            end
         end
     else
         statText = "No stats available"
