@@ -21,25 +21,11 @@ local function logDebug(message)
     print("[DEBUG] " .. message)
 end
 
--- Get pet data with error handling
-local petData
+-- Get pet data
+local petData = require(ReplicatedStorage.Shared.Data.Pets)
 local allPets = {}
 
-local function loadPetData()
-    local success, result = pcall(function()
-        return require(ReplicatedStorage.Shared.Data.Pets)
-    end)
-    
-    if not success then
-        logError("LOAD_PET_DATA", "Failed to load pet data: " .. tostring(result))
-        return {}
-    end
-    return result
-end
-
-petData = loadPetData()
-
--- Convert pet data to a more accessible format with error handling
+-- Convert pet data to a more accessible format
 for petName, petInfo in pairs(petData) do
     local images = {}
     if petInfo.Image then
@@ -57,7 +43,9 @@ for petName, petInfo in pairs(petData) do
     }
 end
 
--- Webhook sending function with proper HTTP request
+logDebug("Loaded data for " .. table.count(allPets) .. " pets")
+
+-- Webhook sending function
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local displayName = isShiny and "Shiny " .. petName or petName
     local imageUrl = "https://ps99.biggamesapi.io/image/" .. (imageAssetId or "0")
@@ -110,9 +98,13 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local modifiedWebhook = string.gsub(WEBHOOK_URL, "https://discord.com", "https://webhook.lewisakura.moe")
     
     spawn(function()
+        local headers = {
+            ["Content-Type"] = "application/json"
+        }
+        
+        local body = HttpService:JSONEncode(data)
         local success, response = pcall(function()
-            -- Using HttpService:PostAsync instead of request
-            return HttpService:PostAsync(modifiedWebhook, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
+            return HttpService:PostAsync(modifiedWebhook, body, Enum.HttpContentType.ApplicationJson)
         end)
         
         if not success then
@@ -123,171 +115,100 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     end)
 end
 
--- Rest of the script remains the same...
-
--- Improved function to find UI elements
-local function findDescendant(parent, names)
-    if type(names) == "string" then
-        names = {names}
-    end
-    
-    local current = parent
-    for _, name in ipairs(names) do
-        current = current:FindFirstChild(name)
-        if not current then
-            return nil
-        end
-    end
-    return current
-end
-
--- Main checking function with detailed logging
+-- Main checking function with updated path finding
 local function CheckForRareHatch()
-    logDebug("Starting hatch check...")
-    
     local player = Players.LocalPlayer
     if not player then
         logError("CHECK_HATCH", "LocalPlayer not found")
         return
     end
     
-    logDebug("Found LocalPlayer: " .. player.Name)
-    
-    -- Try to find the UI elements using multiple possible paths
-    local gui = player.PlayerGui:FindFirstChild("ScreenGui") or player.PlayerGui:FindFirstChildWhichIsA("ScreenGui")
+    local gui = player.PlayerGui:FindFirstChild("ScreenGui")
     if not gui then
-        logError("CHECK_HATCH", "ScreenGui not found in PlayerGui")
+        logError("CHECK_HATCH", "ScreenGui not found")
         return
     end
     
-    logDebug("Found ScreenGui")
-    
-    local hatching = findDescendant(gui, {"Hatching"}) or 
-                     findDescendant(gui, {"Main", "Hatching"}) or
-                     findDescendant(gui, {"MainGui", "Hatching"})
-    
+    local hatching = gui:FindFirstChild("Hatching")
     if not hatching then
         logError("CHECK_HATCH", "Hatching frame not found")
         return
     end
     
-    logDebug("Found Hatching frame")
-    
-    local lastHatch = findDescendant(hatching, {"Last"}) or
-                      findDescendant(hatching, {"Recent", "Last"}) or
-                      findDescendant(hatching, {"HatchHistory", "Last"})
-    
+    local lastHatch = hatching:FindFirstChild("Last")
     if not lastHatch then
         logError("CHECK_HATCH", "Last hatch frame not found")
         return
     end
     
-    logDebug("Found Last hatch frame")
-    
-    -- Find the pet name UI element
-    local petNameElement
-    for _, child in ipairs(lastHatch:GetChildren()) do
-        if (child:IsA("TextLabel") or child:IsA("TextButton")) and child.Name ~= "Chance" then
-            petNameElement = child
-            break
-        end
-    end
-    
-    if not petNameElement then
-        logError("CHECK_HATCH", "Pet name element not found in Last hatch")
-        return
-    end
-    
-    local petName = petNameElement.Text
-    if not petName or petName == "" then
-        logDebug("No pet name found (empty text)")
-        return
-    end
-    
-    logDebug("Found pet name: " .. petName)
-    
-    -- Find the chance UI element
-    local chanceElement = findDescendant(lastHatch, {"Chance"}) or
-                         findDescendant(lastHatch, {"TextLabel", "Chance"})
-    
-    if not chanceElement then
-        logError("CHECK_HATCH", "Chance element not found")
-        return
-    end
-    
-    local chanceText = chanceElement.Text
-    if not chanceText or chanceText == "" then
-        logDebug("No chance text found (empty)")
-        return
-    end
-    
-    logDebug("Found chance text: " .. chanceText)
-    
-    -- Check if the odds are rare enough
-    local isRare = false
-    if RARE_ODDS[chanceText] then
-        isRare = true
-    else
-        -- Check for numeric comparison if the format is different
-        local numericValue = chanceText:match("([0-9.]+)%%")
-        if numericValue then
-            numericValue = tonumber(numericValue)
-            if numericValue and numericValue <= 0.002 then
-                isRare = true
-            end
-        end
-    end
-    
-    if not isRare then
-        logDebug("Pet not rare enough: " .. chanceText)
-        return
-    end
-    
-    logDebug("Rare pet detected: " .. petName .. " (" .. chanceText .. ")")
-    
-    -- Find the icon to check for shiny status
-    local icon = findDescendant(lastHatch, {"Icon"}) or
-                findDescendant(lastHatch, {"PetIcon", "Icon"})
-    
-    local isShiny = false
-    local imageAssetId = ""
-    
-    if icon then
-        local iconLabel = findDescendant(icon, {"Label"}) or
-                        findDescendant(icon, {"ImageLabel", "Label"})
-        
-        if iconLabel then
-            imageAssetId = iconLabel.Text or ""
-            logDebug("Found image asset ID: " .. imageAssetId)
-            
-            -- Check if this is a shiny version
-            local petInfo = allPets[petName]
-            if petInfo and petInfo.images then
-                if imageAssetId == petInfo.images.shiny then
-                    isShiny = true
-                    logDebug("Pet is shiny")
-                elseif imageAssetId ~= petInfo.images.normal then
-                    logDebug("Unknown pet image ID: " .. imageAssetId)
+    -- Find all pet name frames (Kitty, Doggy, Bunny, etc.)
+    for _, petFrame in ipairs(lastHatch:GetChildren()) do
+        if petFrame:IsA("Frame") or petFrame:IsA("TextButton") then
+            local chanceElement = petFrame:FindFirstChild("Chance")
+            if chanceElement then
+                local petName = petFrame.Name
+                local chanceText = chanceElement.Text
+                
+                if chanceText and chanceText ~= "" then
+                    logDebug("Found pet: " .. petName .. " with chance: " .. chanceText)
+                    
+                    -- Check if the odds are rare enough
+                    local isRare = false
+                    if RARE_ODDS[chanceText] then
+                        isRare = true
+                    else
+                        local numericValue = chanceText:match("([0-9.]+)%%")
+                        if numericValue then
+                            numericValue = tonumber(numericValue)
+                            if numericValue and numericValue <= 0.002 then
+                                isRare = true
+                            end
+                        end
+                    end
+                    
+                    if isRare then
+                        logDebug("Rare pet detected: " .. petName .. " (" .. chanceText .. ")")
+                        
+                        -- Find icon for shiny detection
+                        local icon = petFrame:FindFirstChild("Icon")
+                        local isShiny = false
+                        local imageAssetId = ""
+                        
+                        if icon then
+                            local iconLabel = icon:FindFirstChild("Label")
+                            if iconLabel then
+                                imageAssetId = iconLabel.Text or ""
+                                logDebug("Found image asset ID: " .. imageAssetId)
+                                
+                                -- Check if shiny
+                                local petInfo = allPets[petName]
+                                if petInfo and petInfo.images then
+                                    if imageAssetId == petInfo.images.shiny then
+                                        isShiny = true
+                                        logDebug("Pet is shiny")
+                                    elseif imageAssetId ~= petInfo.images.normal then
+                                        logDebug("Unknown pet image ID: " .. imageAssetId)
+                                    end
+                                end
+                            end
+                        end
+                        
+                        -- Get pet info
+                        local petInfo = allPets[petName] or {
+                            rarity = "Unknown",
+                            stats = {}
+                        }
+                        
+                        logDebug("Sending webhook for pet: " .. petName)
+                        SendWebhook(petName, chanceText, petInfo.rarity, petInfo.stats, imageAssetId, isShiny)
+                    end
                 end
             end
-        else
-            logDebug("Icon label not found")
         end
-    else
-        logDebug("Icon not found")
     end
-    
-    -- Get pet info
-    local petInfo = allPets[petName] or {
-        rarity = "Unknown",
-        stats = {}
-    }
-    
-    logDebug("Sending webhook for pet: " .. petName)
-    SendWebhook(petName, chanceText, petInfo.rarity, petInfo.stats, imageAssetId, isShiny)
 end
 
--- Main loop with error handling
+-- Main loop
 while true do
     local success, err = pcall(CheckForRareHatch)
     if not success then
