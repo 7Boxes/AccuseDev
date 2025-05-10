@@ -43,8 +43,6 @@ for petName, petInfo in pairs(petData) do
     }
 end
 
-logDebug("Loaded data for " .. table.count(allPets) .. " pets")
-
 -- Webhook sending function
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local displayName = isShiny and "Shiny " .. petName or petName
