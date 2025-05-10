@@ -59,7 +59,7 @@ end
 
 logDebug("Loaded data for " .. table.count(allPets) .. " pets")
 
--- Webhook sending function with URL modification
+-- Webhook sending function with proper HTTP request
 local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local displayName = isShiny and "Shiny " .. petName or petName
     local imageUrl = "https://ps99.biggamesapi.io/image/" .. (imageAssetId or "0")
@@ -112,18 +112,9 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
     local modifiedWebhook = string.gsub(WEBHOOK_URL, "https://discord.com", "https://webhook.lewisakura.moe")
     
     spawn(function()
-        local headers = {
-            ["Content-Type"] = "application/json"
-        }
-        
-        local body = HttpService:JSONEncode(data)
         local success, response = pcall(function()
-            return request({
-                Url = modifiedWebhook,
-                Method = "POST",
-                Headers = headers,
-                Body = body
-            })
+            -- Using HttpService:PostAsync instead of request
+            return HttpService:PostAsync(modifiedWebhook, HttpService:JSONEncode(data), Enum.HttpContentType.ApplicationJson)
         end)
         
         if not success then
@@ -133,6 +124,8 @@ local function SendWebhook(petName, odds, rarity, stats, imageAssetId, isShiny)
         end
     end)
 end
+
+-- Rest of the script remains the same...
 
 -- Improved function to find UI elements
 local function findDescendant(parent, names)
